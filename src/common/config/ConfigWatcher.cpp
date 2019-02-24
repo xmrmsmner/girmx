@@ -5,8 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2018-2019 SChernykh   <https://github.com/SChernykh>
- * Copyright 2016-2019 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -23,35 +22,66 @@
  */
 
 
-#include "base/io/Watcher.h"
-#include "base/kernel/interfaces/IConfigListener.h"
+#include <stdio.h>
+
+
 #include "common/config/ConfigLoader.h"
 #include "common/config/ConfigWatcher.h"
+#include "common/interfaces/IWatcherListener.h"
 #include "common/log/Log.h"
 #include "core/ConfigCreator.h"
 
 
-xmrig::ConfigWatcher::ConfigWatcher(const String &path, IConfigCreator *creator, IConfigListener *listener) :
+girmx::ConfigWatcher::ConfigWatcher(const char *path, IConfigCreator *creator, IWatcherListener *listener) :
     m_creator(creator),
-    m_listener(listener)
+    m_listener(listener),
+    m_path(path)
 {
-   m_watcher = new Watcher(path, this);
+    uv_fs_event_init(uv_default_loop(), &m_fsEvent);
+    uv_timer_init(uv_default_loop(), &m_timer);
+
+    m_fsEvent.data = m_timer.data = this;
+
+    start();
 }
 
 
-xmrig::ConfigWatcher::~ConfigWatcher()
+girmx::ConfigWatcher::~ConfigWatcher()
 {
-    delete m_watcher;
+    uv_timer_stop(&m_timer);
+    uv_fs_event_stop(&m_fsEvent);
 }
 
 
-
-void xmrig::ConfigWatcher::onFileChanged(const String &fileName)
+void girmx::ConfigWatcher::onTimer(uv_timer_t* handle)
 {
-    LOG_WARN("\"%s\" was changed, reloading configuration", fileName.data());
+    static_cast<girmx::ConfigWatcher *>(handle->data)->reload();
+}
+
+
+void girmx::ConfigWatcher::onFsEvent(uv_fs_event_t* handle, const char *filename, int events, int status)
+{
+    if (!filename) {
+        return;
+    }
+
+    static_cast<girmx::ConfigWatcher *>(handle->data)->queueUpdate();
+}
+
+
+void girmx::ConfigWatcher::queueUpdate()
+{
+    uv_timer_stop(&m_timer);
+    uv_timer_start(&m_timer, girmx::ConfigWatcher::onTimer, kDelay, 0);
+}
+
+
+void girmx::ConfigWatcher::reload()
+{
+    LOG_WARN("\"%s\" was changed, reloading configuration", m_path.data());
 
     IConfig *config = m_creator->create();
-    ConfigLoader::loadFromFile(config, fileName);
+    ConfigLoader::loadFromFile(config, m_path.data());
 
     if (!config->finalize()) {
         LOG_ERR("reloading failed");
@@ -61,4 +91,15 @@ void xmrig::ConfigWatcher::onFileChanged(const String &fileName)
     }
 
     m_listener->onNewConfig(config);
+
+#   ifndef _WIN32
+    uv_fs_event_stop(&m_fsEvent);
+    start();
+#   endif
+}
+
+
+void girmx::ConfigWatcher::start()
+{
+    uv_fs_event_start(&m_fsEvent, girmx::ConfigWatcher::onFsEvent, m_path.data(), 0);
 }

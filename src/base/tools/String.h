@@ -5,7 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2016-2018 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 #include "rapidjson/fwd.h"
 
 
-namespace xmrig {
+namespace girmx {
 
 
 /**
@@ -83,9 +83,9 @@ public:
 
     rapidjson::Value toJSON() const;
     rapidjson::Value toJSON(rapidjson::Document &doc) const;
-    std::vector<xmrig::String> split(char sep) const;
+    std::vector<girmx::String> split(char sep) const;
 
-    static String join(const std::vector<xmrig::String> &vec, char sep);
+    static String join(const std::vector<girmx::String> &vec, char sep);
 
 private:
     void copy(const char *str);
@@ -98,7 +98,7 @@ private:
 };
 
 
-} /* namespace xmrig */
+} /* namespace girmx */
 
 
 #endif /* XMRIG_STRING_H */

@@ -5,7 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2016-2018 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 #include "common/net/SubmitResult.h"
 
 
-xmrig::NetworkState::NetworkState() :
+NetworkState::NetworkState() :
     diff(0),
     accepted(0),
     failures(0),
@@ -44,13 +44,13 @@ xmrig::NetworkState::NetworkState() :
 }
 
 
-int xmrig::NetworkState::connectionTime() const
+int NetworkState::connectionTime() const
 {
     return m_active ? (int)((uv_now(uv_default_loop()) - m_connectionTime) / 1000) : 0;
 }
 
 
-uint32_t xmrig::NetworkState::avgTime() const
+uint32_t NetworkState::avgTime() const
 {
     if (m_latency.empty()) {
         return 0;
@@ -60,7 +60,7 @@ uint32_t xmrig::NetworkState::avgTime() const
 }
 
 
-uint32_t xmrig::NetworkState::latency() const
+uint32_t NetworkState::latency() const
 {
     const size_t calls = m_latency.size();
     if (calls == 0) {
@@ -74,7 +74,7 @@ uint32_t xmrig::NetworkState::latency() const
 }
 
 
-void xmrig::NetworkState::add(const SubmitResult &result, const char *error)
+void NetworkState::add(const SubmitResult &result, const char *error)
 {
     if (error) {
         rejected++;
@@ -94,7 +94,7 @@ void xmrig::NetworkState::add(const SubmitResult &result, const char *error)
 }
 
 
-void xmrig::NetworkState::setPool(const char *host, int port, const char *ip)
+void NetworkState::setPool(const char *host, int port, const char *ip)
 {
     snprintf(pool, sizeof(pool) - 1, "%s:%d", host, port);
 
@@ -103,7 +103,7 @@ void xmrig::NetworkState::setPool(const char *host, int port, const char *ip)
 }
 
 
-void xmrig::NetworkState::stop()
+void NetworkState::stop()
 {
     m_active = false;
     diff     = 0;

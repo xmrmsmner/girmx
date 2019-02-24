@@ -5,7 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2016-2018 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -91,9 +91,9 @@ bool Httpd::start()
 }
 
 
-int Httpd::process(xmrig::HttpRequest &req)
+int Httpd::process(girmx::HttpRequest &req)
 {
-    xmrig::HttpReply reply;
+    girmx::HttpReply reply;
     if (!req.process(m_accessToken, m_restricted, reply)) {
         return req.end(reply);
     }
@@ -128,13 +128,13 @@ void Httpd::run()
 
 int Httpd::handler(void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *uploadData, size_t *uploadSize, void **con_cls)
 {
-    xmrig::HttpRequest req(connection, url, method, uploadData, uploadSize, con_cls);
+    girmx::HttpRequest req(connection, url, method, uploadData, uploadSize, con_cls);
 
-    if (req.method() == xmrig::HttpRequest::Options) {
+    if (req.method() == girmx::HttpRequest::Options) {
         return req.end(MHD_HTTP_OK, nullptr);
     }
 
-    if (req.method() == xmrig::HttpRequest::Unsupported) {
+    if (req.method() == girmx::HttpRequest::Unsupported) {
         return req.end(MHD_HTTP_METHOD_NOT_ALLOWED, nullptr);
     }
 

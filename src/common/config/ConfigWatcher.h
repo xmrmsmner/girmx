@@ -5,8 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2018-2019 SChernykh   <https://github.com/SChernykh>
- * Copyright 2016-2019 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -22,42 +21,51 @@
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef XMRIG_CONFIGWATCHER_H
-#define XMRIG_CONFIGWATCHER_H
+#ifndef __CONFIGWATCHER_H__
+#define __CONFIGWATCHER_H__
 
 
-#include "base/kernel/interfaces/IWatcherListener.h"
-#include "base/tools/String.h"
+#include <stdint.h>
+#include <uv.h>
+
+
+#include "common/utils/c_str.h"
 #include "rapidjson/fwd.h"
 
 
 struct option;
 
 
-namespace xmrig {
+namespace girmx {
 
 
 class IConfigCreator;
-class IConfigListener;
-class Watcher;
+class IWatcherListener;
 
 
-class ConfigWatcher : public IWatcherListener
+class ConfigWatcher
 {
 public:
-    ConfigWatcher(const String &path, IConfigCreator *creator, IConfigListener *listener);
-    ~ConfigWatcher() override;
-
-protected:
-    void onFileChanged(const String &fileName) override;
+    ConfigWatcher(const char *path, IConfigCreator *creator, IWatcherListener *listener);
+    ~ConfigWatcher();
 
 private:
+    constexpr static int kDelay = 500;
+
+    static void onFsEvent(uv_fs_event_t* handle, const char *filename, int events, int status);
+    static void onTimer(uv_timer_t* handle);
+    void queueUpdate();
+    void reload();
+    void start();
+
     IConfigCreator *m_creator;
-    IConfigListener *m_listener;
-    Watcher *m_watcher;
+    IWatcherListener *m_listener;
+    uv_fs_event_t m_fsEvent;
+    uv_timer_t m_timer;
+    girmx::c_str m_path;
 };
 
 
-} /* namespace xmrig */
+} /* namespace girmx */
 
 #endif /* __CONFIGWATCHER_H__ */

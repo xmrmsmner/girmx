@@ -4,7 +4,7 @@
  * Copyright 2014      Lucas Jones <https://github.com/lucasjones>
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
- * Copyright 2016-2017 XMRig       <support@xmrig.com>
+ * Copyright 2016-2017 XMRig       <support@girmx.com>
  *
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -29,10 +29,10 @@
 #include "common/cpu/Cpu.h"
 
 
-static xmrig::ICpuInfo *cpuInfo = nullptr;
+static girmx::ICpuInfo *cpuInfo = nullptr;
 
 
-xmrig::ICpuInfo *xmrig::Cpu::info()
+girmx::ICpuInfo *girmx::Cpu::info()
 {
     assert(cpuInfo != nullptr);
 
@@ -40,7 +40,7 @@ xmrig::ICpuInfo *xmrig::Cpu::info()
 }
 
 
-void xmrig::Cpu::init()
+void girmx::Cpu::init()
 {
     assert(cpuInfo == nullptr);
 
@@ -48,7 +48,7 @@ void xmrig::Cpu::init()
 }
 
 
-void xmrig::Cpu::release()
+void girmx::Cpu::release()
 {
     assert(cpuInfo != nullptr);
 

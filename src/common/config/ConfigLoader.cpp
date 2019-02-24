@@ -5,8 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2018-2019 SChernykh   <https://github.com/SChernykh>
- * Copyright 2016-2019 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2019 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -23,7 +22,6 @@
  */
 
 
-#include <assert.h>
 #include <limits.h>
 #include <stdio.h>
 #include <uv.h>
@@ -39,23 +37,23 @@
 #endif
 
 
-#include "base/io/Json.h"
-#include "base/kernel/interfaces/IConfigListener.h"
-#include "base/kernel/Process.h"
 #include "common/config/ConfigLoader.h"
 #include "common/config/ConfigWatcher.h"
 #include "common/interfaces/IConfig.h"
+#include "common/interfaces/IWatcherListener.h"
+#include "common/net/Pool.h"
 #include "common/Platform.h"
 #include "core/ConfigCreator.h"
 #include "core/ConfigLoader_platform.h"
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
-#include "rapidjson/fwd.h"
+#include "rapidjson/filereadstream.h"
 
 
-xmrig::ConfigWatcher *xmrig::ConfigLoader::m_watcher     = nullptr;
-xmrig::IConfigCreator *xmrig::ConfigLoader::m_creator    = nullptr;
-xmrig::IConfigListener *xmrig::ConfigLoader::m_listener  = nullptr;
+bool girmx::ConfigLoader::m_done                         = false;
+girmx::ConfigWatcher *girmx::ConfigLoader::m_watcher     = nullptr;
+girmx::IConfigCreator *girmx::ConfigLoader::m_creator    = nullptr;
+girmx::IWatcherListener *girmx::ConfigLoader::m_listener = nullptr;
 
 
 #ifndef ARRAY_SIZE
@@ -63,7 +61,7 @@ xmrig::IConfigListener *xmrig::ConfigLoader::m_listener  = nullptr;
 #endif
 
 
-bool xmrig::ConfigLoader::loadFromFile(xmrig::IConfig *config, const char *fileName)
+bool girmx::ConfigLoader::loadFromFile(girmx::IConfig *config, const char *fileName)
 {
     rapidjson::Document doc;
     if (!getJSON(fileName, doc)) {
@@ -76,11 +74,10 @@ bool xmrig::ConfigLoader::loadFromFile(xmrig::IConfig *config, const char *fileN
 }
 
 
-bool xmrig::ConfigLoader::loadFromJSON(xmrig::IConfig *config, const char *json)
+bool girmx::ConfigLoader::loadFromJSON(girmx::IConfig *config, const char *json)
 {
-    using namespace rapidjson;
-    Document doc;
-    doc.Parse<kParseCommentsFlag | kParseTrailingCommasFlag>(json);
+    rapidjson::Document doc;
+    doc.Parse(json);
 
     if (doc.HasParseError() || !doc.IsObject()) {
         return false;
@@ -90,10 +87,23 @@ bool xmrig::ConfigLoader::loadFromJSON(xmrig::IConfig *config, const char *json)
 }
 
 
-bool xmrig::ConfigLoader::loadFromJSON(xmrig::IConfig *config, const rapidjson::Document &doc)
+bool girmx::ConfigLoader::loadFromJSON(girmx::IConfig *config, const rapidjson::Document &doc)
 {
     for (size_t i = 0; i < ARRAY_SIZE(config_options); i++) {
         parseJSON(config, &config_options[i], doc);
+    }
+
+    const rapidjson::Value &pools = doc["pools"];
+    if (pools.IsArray()) {
+        for (const rapidjson::Value &value : pools.GetArray()) {
+            if (!value.IsObject()) {
+                continue;
+            }
+
+            for (size_t i = 0; i < ARRAY_SIZE(pool_options); i++) {
+                parseJSON(config, &pool_options[i], value);
+            }
+        }
     }
 
     const rapidjson::Value &api = doc["api"];
@@ -109,9 +119,9 @@ bool xmrig::ConfigLoader::loadFromJSON(xmrig::IConfig *config, const rapidjson::
 }
 
 
-bool xmrig::ConfigLoader::reload(xmrig::IConfig *oldConfig, const char *json)
+bool girmx::ConfigLoader::reload(girmx::IConfig *oldConfig, const char *json)
 {
-    xmrig::IConfig *config = m_creator->create();
+    girmx::IConfig *config = m_creator->create();
     if (!loadFromJSON(config, json)) {
         delete config;
 
@@ -132,31 +142,16 @@ bool xmrig::ConfigLoader::reload(xmrig::IConfig *oldConfig, const char *json)
 }
 
 
-bool xmrig::ConfigLoader::watch(IConfig *config)
-{
-    if (!config->isWatch()) {
-        return false;
-    }
-
-    assert(m_watcher == nullptr);
-
-    m_watcher = new xmrig::ConfigWatcher(config->fileName(), m_creator, m_listener);
-    return true;
-}
-
-
-xmrig::IConfig *xmrig::ConfigLoader::load(Process *process, IConfigCreator *creator, IConfigListener *listener)
+girmx::IConfig *girmx::ConfigLoader::load(int argc, char **argv, IConfigCreator *creator, IWatcherListener *listener)
 {
     m_creator  = creator;
     m_listener = listener;
 
-    xmrig::IConfig *config = m_creator->create();
+    girmx::IConfig *config = m_creator->create();
     int key;
-    int argc    = process->arguments().argc();
-    char **argv = process->arguments().argv();
 
     while (1) {
-        key = getopt_long(argc, argv, short_options, options, nullptr);
+        key = getopt_long(argc, argv, short_options, options, NULL);
         if (key < 0) {
             break;
         }
@@ -177,7 +172,7 @@ xmrig::IConfig *xmrig::ConfigLoader::load(Process *process, IConfigCreator *crea
         delete config;
 
         config = m_creator->create();
-        loadFromFile(config, process->location(Process::ExeLocation, "config.json"));
+        loadFromFile(config, Platform::defaultConfigName());
     }
 
     if (!config->finalize()) {
@@ -192,11 +187,15 @@ xmrig::IConfig *xmrig::ConfigLoader::load(Process *process, IConfigCreator *crea
         return nullptr;
     }
 
+    if (config->isWatch()) {
+        m_watcher = new girmx::ConfigWatcher(config->fileName(), creator, listener);
+    }
+
     return config;
 }
 
 
-void xmrig::ConfigLoader::release()
+void girmx::ConfigLoader::release()
 {
     delete m_watcher;
     delete m_creator;
@@ -206,34 +205,59 @@ void xmrig::ConfigLoader::release()
 }
 
 
-bool xmrig::ConfigLoader::getJSON(const char *fileName, rapidjson::Document &doc)
+bool girmx::ConfigLoader::getJSON(const char *fileName, rapidjson::Document &doc)
 {
-    if (Json::get(fileName, doc)) {
-        return true;
+    uv_fs_t req;
+    const int fd = uv_fs_open(uv_default_loop(), &req, fileName, O_RDONLY, 0644, nullptr);
+    if (fd < 0) {
+        fprintf(stderr, "unable to open %s: %s\n", fileName, uv_strerror(fd));
+        return false;
     }
+
+    uv_fs_req_cleanup(&req);
+
+    FILE *fp = fdopen(fd, "rb");
+    char buf[8192];
+    rapidjson::FileReadStream is(fp, buf, sizeof(buf));
+
+    doc.ParseStream(is);
+
+    uv_fs_close(uv_default_loop(), &req, fd, nullptr);
+    uv_fs_req_cleanup(&req);
 
     if (doc.HasParseError()) {
-        printf("%s<offset:%zu>: \"%s\"\n", fileName, doc.GetErrorOffset(), rapidjson::GetParseError_En(doc.GetParseError()));
-    }
-    else {
-       fprintf(stderr, "unable to open \"%s\".\n", fileName);
+        printf("%s<%d>: %s\n", fileName, (int) doc.GetErrorOffset(), rapidjson::GetParseError_En(doc.GetParseError()));
+        return false;
     }
 
-    return false;
+    return doc.IsObject();
 }
 
 
-bool xmrig::ConfigLoader::parseArg(xmrig::IConfig *config, int key, const char *arg)
+bool girmx::ConfigLoader::parseArg(girmx::IConfig *config, int key, const char *arg)
 {
-    if (key == xmrig::IConfig::ConfigKey) {
-        return loadFromFile(config, arg);
+    switch (key) {
+    case girmx::IConfig::VersionKey: /* --version */
+        showVersion();
+        return false;
+
+    case girmx::IConfig::HelpKey: /* --help */
+        showUsage();
+        return false;
+
+    case girmx::IConfig::ConfigKey: /* --config */
+        loadFromFile(config, arg);
+        break;
+
+    default:
+        return config->parseString(key, arg);;
     }
 
-    return config->parseString(key, arg);
+    return true;
 }
 
 
-void xmrig::ConfigLoader::parseJSON(xmrig::IConfig *config, const struct option *option, const rapidjson::Value &object)
+void girmx::ConfigLoader::parseJSON(girmx::IConfig *config, const struct option *option, const rapidjson::Value &object)
 {
     if (!option->name || !object.HasMember(option->name)) {
         return;
@@ -255,4 +279,57 @@ void xmrig::ConfigLoader::parseJSON(xmrig::IConfig *config, const struct option 
     else if (value.IsBool()) {
         config->parseBoolean(option->val, value.IsTrue());
     }
+}
+
+
+void girmx::ConfigLoader::showUsage()
+{
+    m_done = true;
+
+    printf(usage);
+}
+
+
+void girmx::ConfigLoader::showVersion()
+{
+    m_done = true;
+
+    printf(APP_NAME " " APP_VERSION "\n built on " __DATE__
+
+#   if defined(__clang__)
+    " with clang " __clang_version__);
+#   elif defined(__GNUC__)
+    " with GCC");
+    printf(" %d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#   elif defined(_MSC_VER)
+    " with MSVC");
+    printf(" %d", MSVC_VERSION);
+#   else
+    );
+#   endif
+
+    printf("\n features:"
+#   if defined(__i386__) || defined(_M_IX86)
+    " 32-bit"
+#   elif defined(__x86_64__) || defined(_M_AMD64)
+    " 64-bit"
+#   endif
+
+#   if defined(__AES__) || defined(_MSC_VER)
+    " AES"
+#   endif
+    "\n");
+
+    printf("\nlibuv/%s\n", uv_version_string());
+
+#   ifndef XMRIG_NO_HTTPD
+    printf("microhttpd/%s\n", MHD_get_version());
+#   endif
+
+#   if !defined(XMRIG_NO_TLS) && defined(OPENSSL_VERSION_TEXT)
+    {
+        constexpr const char *v = OPENSSL_VERSION_TEXT + 8;
+        printf("OpenSSL/%.*s\n", static_cast<int>(strchr(v, ' ') - v), v);
+    }
+#   endif
 }

@@ -5,9 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2018      Lee Clagett <https://github.com/vtnerd>
- * Copyright 2018-2019 SChernykh   <https://github.com/SChernykh>
- * Copyright 2016-2019 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -23,51 +21,54 @@
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef XMRIG_APP_H
-#define XMRIG_APP_H
+#ifndef __APP_H__
+#define __APP_H__
 
 
-#include "base/kernel/interfaces/ISignalListener.h"
+#include <uv.h>
+
+
 #include "common/interfaces/IConsoleListener.h"
 
 
 class Console;
 class Httpd;
-
-
-namespace xmrig {
-
-
-class Controller;
 class Network;
-class Process;
-class Signals;
+class Options;
 
 
-class App : public IConsoleListener, public ISignalListener
+namespace girmx {
+    class Controller;
+}
+
+
+class App : public IConsoleListener
 {
 public:
-    App(Process *process);
-    ~App() override;
+  App(int argc, char **argv);
+  ~App();
 
-    int exec();
+  int exec();
 
 protected:
-    void onConsoleCommand(char command) override;
-    void onSignal(int signum) override;
+  void onConsoleCommand(char command) override;
 
 private:
-    void background();
-    void close();
+  void background();
+  void close();
+  void release();
 
-    Console *m_console;
-    Controller *m_controller;
-    Httpd *m_httpd;
-    Signals *m_signals;
+  static void onSignal(uv_signal_t *handle, int signum);
+
+  static App *m_self;
+
+  Console *m_console;
+  Httpd *m_httpd;
+  uv_signal_t m_sigHUP;
+  uv_signal_t m_sigINT;
+  uv_signal_t m_sigTERM;
+  girmx::Controller *m_controller;
 };
 
 
-} /* namespace xmrig */
-
-
-#endif /* XMRIG_APP_H */
+#endif /* __APP_H__ */

@@ -5,7 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2016-2018 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -33,7 +33,7 @@ struct MHD_Connection;
 struct MHD_Response;
 
 
-namespace xmrig {
+namespace girmx {
 
 
 class HttpBody;
@@ -58,7 +58,7 @@ public:
     inline Method method() const     { return m_method; }
 
     bool match(const char *path) const;
-    bool process(const char *accessToken, bool restricted, xmrig::HttpReply &reply);
+    bool process(const char *accessToken, bool restricted, girmx::HttpReply &reply);
     const char *body() const;
     int end(const HttpReply &reply);
     int end(int status, MHD_Response *rsp);
@@ -78,7 +78,7 @@ private:
 };
 
 
-} /* namespace xmrig */
+} /* namespace girmx */
 
 
 #endif /* __HTTPREQUEST_H__ */

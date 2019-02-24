@@ -5,9 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2018      Lee Clagett <https://github.com/vtnerd>
- * Copyright 2018      SChernykh   <https://github.com/SChernykh>
- * Copyright 2016-2019 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -30,7 +28,6 @@
 
 #include "api/Api.h"
 #include "App.h"
-#include "base/kernel/Signals.h"
 #include "common/Console.h"
 #include "common/cpu/Cpu.h"
 #include "common/log/Log.h"
@@ -50,27 +47,35 @@
 #endif
 
 
-xmrig::App::App(Process *process) :
+App *App::m_self = nullptr;
+
+
+
+App::App(int argc, char **argv) :
     m_console(nullptr),
-    m_httpd(nullptr),
-    m_signals(nullptr)
+    m_httpd(nullptr)
 {
-    m_controller = new xmrig::Controller(process);
-    if (m_controller->init() != 0) {
+    m_self = this;
+
+    m_controller = new girmx::Controller();
+    if (m_controller->init(argc, argv) != 0) {
         return;
     }
 
     if (!m_controller->config()->isBackground()) {
         m_console = new Console(this);
     }
+
+    uv_signal_init(uv_default_loop(), &m_sigHUP);
+    uv_signal_init(uv_default_loop(), &m_sigINT);
+    uv_signal_init(uv_default_loop(), &m_sigTERM);
 }
 
 
-xmrig::App::~App()
+App::~App()
 {
-    uv_tty_reset_mode();
+uv_tty_reset_mode();
 
-    delete m_signals;
     delete m_console;
     delete m_controller;
 
@@ -80,13 +85,20 @@ xmrig::App::~App()
 }
 
 
-int xmrig::App::exec()
+int App::exec()
+
 {
+    if (m_controller->isDone()) {
+        return 0;
+    }
+
     if (!m_controller->isReady()) {
         return 2;
     }
 
-    m_signals = new Signals(this);
+    uv_signal_start(&m_sigHUP,  App::onSignal, SIGHUP);
+    uv_signal_start(&m_sigINT,  App::onSignal, SIGINT);
+    uv_signal_start(&m_sigTERM, App::onSignal, SIGTERM);
 
     background();
 
@@ -96,6 +108,7 @@ int xmrig::App::exec()
 
     if (m_controller->config()->isDryRun()) {
         LOG_NOTICE("OK");
+        release();
 
         return 0;
     }
@@ -122,11 +135,12 @@ int xmrig::App::exec()
     const int r = uv_run(uv_default_loop(), UV_RUN_DEFAULT);
     uv_loop_close(uv_default_loop());
 
+    release();
     return r;
 }
 
 
-void xmrig::App::onConsoleCommand(char command)
+void App::onConsoleCommand(char command)
 {
     switch (command) {
     case 'h':
@@ -161,7 +175,21 @@ void xmrig::App::onConsoleCommand(char command)
 }
 
 
-void xmrig::App::onSignal(int signum)
+void App::close()
+{
+    m_controller->network()->stop();
+    Workers::stop();
+
+    uv_stop(uv_default_loop());
+}
+
+
+void App::release()
+{
+}
+
+
+void App::onSignal(uv_signal_t *handle, int signum)
 {
     switch (signum)
     {
@@ -181,14 +209,6 @@ void xmrig::App::onSignal(int signum)
         break;
     }
 
-    close();
-}
-
-
-void xmrig::App::close()
-{
-    m_controller->network()->stop();
-    Workers::stop();
-
-    uv_stop(uv_default_loop());
+    uv_signal_stop(handle);
+    m_self->close();
 }

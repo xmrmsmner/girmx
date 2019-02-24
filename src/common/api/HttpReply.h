@@ -5,7 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2016-2018 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *
  *   This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 
-namespace xmrig {
+namespace girmx {
 
 
 class HttpReply
@@ -47,7 +47,7 @@ public:
 };
 
 
-} /* namespace xmrig */
+} /* namespace girmx */
 
 
 #endif /* __HTTPREPLY_H__ */

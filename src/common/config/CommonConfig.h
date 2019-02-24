@@ -5,8 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2018-2019 SChernykh   <https://github.com/SChernykh>
- * Copyright 2016-2019 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -26,13 +25,16 @@
 #define XMRIG_COMMONCONFIG_H
 
 
-#include "base/net/Pools.h"
-#include "base/tools/String.h"
+#include <vector>
+
+
 #include "common/interfaces/IConfig.h"
-#include "common/xmrig.h"
+#include "common/net/Pool.h"
+#include "common/utils/c_str.h"
+#include "common/girmx.h"
 
 
-namespace xmrig {
+namespace girmx {
 
 
 class CommonConfig : public IConfig
@@ -44,6 +46,7 @@ public:
     inline bool isApiRestricted() const            { return m_apiRestricted; }
     inline bool isAutoSave() const                 { return m_autoSave; }
     inline bool isBackground() const               { return m_background; }
+    inline bool isColors() const                   { return m_colors; }
     inline bool isDryRun() const                   { return m_dryRun; }
     inline bool isSyslog() const                   { return m_syslog; }
     inline const char *apiId() const               { return m_apiId.data(); }
@@ -51,18 +54,20 @@ public:
     inline const char *apiWorkerId() const         { return m_apiWorkerId.data(); }
     inline const char *logFile() const             { return m_logFile.data(); }
     inline const char *userAgent() const           { return m_userAgent.data(); }
-    inline const Pools &pools() const              { return m_pools; }
+    inline const std::vector<Pool> &pools() const  { return m_activePools; }
     inline int apiPort() const                     { return m_apiPort; }
     inline int donateLevel() const                 { return m_donateLevel; }
     inline int printTime() const                   { return m_printTime; }
+    inline int retries() const                     { return m_retries; }
+    inline int retryPause() const                  { return m_retryPause; }
+    inline void setColors(bool colors)             { m_colors = colors; }
 
     inline bool isWatch() const override               { return m_watch && !m_fileName.isNull(); }
     inline const Algorithm &algorithm() const override { return m_algorithm; }
-    inline const String &fileName() const override     { return m_fileName; }
+    inline const char *fileName() const override       { return m_fileName.data(); }
 
     bool save() override;
 
-    bool isColors() const;
     void printAPI();
     void printPools();
     void printVersions();
@@ -78,7 +83,6 @@ protected:
     bool parseBoolean(int key, bool enable) override;
     bool parseString(int key, const char *arg) override;
     bool parseUint64(int key, uint64_t arg) override;
-    void parseJSON(const rapidjson::Document &doc) override;
     void setFileName(const char *fileName) override;
 
     Algorithm m_algorithm;
@@ -87,26 +91,32 @@ protected:
     bool m_apiRestricted;
     bool m_autoSave;
     bool m_background;
+    bool m_colors;
     bool m_dryRun;
     bool m_syslog;
     bool m_watch;
     int m_apiPort;
     int m_donateLevel;
     int m_printTime;
-    Pools m_pools;
+    int m_retries;
+    int m_retryPause;
     State m_state;
-    String m_apiId;
-    String m_apiToken;
-    String m_apiWorkerId;
-    String m_fileName;
-    String m_logFile;
-    String m_userAgent;
+    std::vector<Pool> m_activePools;
+    std::vector<Pool> m_pools;
+    girmx::c_str m_apiId;
+    girmx::c_str m_apiToken;
+    girmx::c_str m_apiWorkerId;
+    girmx::c_str m_fileName;
+    girmx::c_str m_logFile;
+    girmx::c_str m_userAgent;
 
 private:
     bool parseInt(int key, int arg);
+    Pool &currentPool();
+    void fixup();
 };
 
 
-} /* namespace xmrig */
+} /* namespace girmx */
 
 #endif /* XMRIG_COMMONCONFIG_H */

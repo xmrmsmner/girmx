@@ -5,8 +5,7 @@
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
  * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2018-2019 SChernykh   <https://github.com/SChernykh>
- * Copyright 2016-2019 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <https://github.com/girmx>, <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -61,7 +60,7 @@ static inline double normalize(double d)
 }
 
 
-ApiRouter::ApiRouter(xmrig::Controller *controller) :
+ApiRouter::ApiRouter(girmx::Controller *controller) :
     m_controller(controller)
 {
     memset(m_workerId, 0, sizeof(m_workerId));
@@ -76,7 +75,7 @@ ApiRouter::~ApiRouter()
 }
 
 
-void ApiRouter::ApiRouter::get(const xmrig::HttpRequest &req, xmrig::HttpReply &reply) const
+void ApiRouter::ApiRouter::get(const girmx::HttpRequest &req, girmx::HttpReply &reply) const
 {
     rapidjson::Document doc;
 
@@ -109,9 +108,9 @@ void ApiRouter::ApiRouter::get(const xmrig::HttpRequest &req, xmrig::HttpReply &
 }
 
 
-void ApiRouter::exec(const xmrig::HttpRequest &req, xmrig::HttpReply &reply)
+void ApiRouter::exec(const girmx::HttpRequest &req, girmx::HttpReply &reply)
 {
-    if (req.method() == xmrig::HttpRequest::Put && req.match("/1/config")) {
+    if (req.method() == girmx::HttpRequest::Put && req.match("/1/config")) {
         m_controller->config()->reload(req.body());
         return;
     }
@@ -120,21 +119,21 @@ void ApiRouter::exec(const xmrig::HttpRequest &req, xmrig::HttpReply &reply)
 }
 
 
-void ApiRouter::tick(const xmrig::NetworkState &network)
+void ApiRouter::tick(const NetworkState &network)
 {
     m_network = network;
 }
 
 
-void ApiRouter::onConfigChanged(xmrig::Config *config, xmrig::Config *previousConfig)
+void ApiRouter::onConfigChanged(girmx::Config *config, girmx::Config *previousConfig)
 {
     updateWorkerId(config->apiWorkerId(), previousConfig->apiWorkerId());
 }
 
 
-void ApiRouter::finalize(xmrig::HttpReply &reply, rapidjson::Document &doc) const
+void ApiRouter::finalize(girmx::HttpReply &reply, rapidjson::Document &doc) const
 {
-    rapidjson::StringBuffer buffer(nullptr, 4096);
+    rapidjson::StringBuffer buffer(0, 4096);
     rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
     writer.SetMaxDecimalPlaces(10);
     doc.Accept(writer);
@@ -173,8 +172,8 @@ void ApiRouter::genId(const char *id)
             memcpy(input + sizeof(uint16_t), interfaces[i].phys_addr, addrSize);
             memcpy(input + sizeof(uint16_t) + addrSize, APP_KIND, strlen(APP_KIND));
 
-            xmrig::keccak(input, inSize, hash);
-            xmrig::Job::toHex(hash, 8, m_id);
+            girmx::keccak(input, inSize, hash);
+            Job::toHex(hash, 8, m_id);
 
             delete [] input;
             break;
@@ -239,7 +238,7 @@ void ApiRouter::getIdentify(rapidjson::Document &doc) const
 
 void ApiRouter::getMiner(rapidjson::Document &doc) const
 {
-    using namespace xmrig;
+    using namespace girmx;
     auto &allocator = doc.GetAllocator();
 
     rapidjson::Value cpu(rapidjson::kObjectType);
@@ -290,19 +289,16 @@ void ApiRouter::getThreads(rapidjson::Document &doc) const
 
     Workers::threadsSummary(doc);
 
-    const std::vector<xmrig::IThread *> &threads = m_controller->config()->threads();
+    const std::vector<girmx::IThread *> &threads = m_controller->config()->threads();
     rapidjson::Value list(rapidjson::kArrayType);
 
-    size_t i = 0;
-    for (const xmrig::IThread *thread : threads) {
+    for (const girmx::IThread *thread : threads) {
         rapidjson::Value value = thread->toAPI(doc);
 
         rapidjson::Value hashrate(rapidjson::kArrayType);
-        hashrate.PushBack(normalize(hr->calc(i, Hashrate::ShortInterval)),  allocator);
-        hashrate.PushBack(normalize(hr->calc(i, Hashrate::MediumInterval)), allocator);
-        hashrate.PushBack(normalize(hr->calc(i, Hashrate::LargeInterval)),  allocator);
-
-        i++;
+        hashrate.PushBack(normalize(hr->calc(thread->index(), Hashrate::ShortInterval)),  allocator);
+        hashrate.PushBack(normalize(hr->calc(thread->index(), Hashrate::MediumInterval)), allocator);
+        hashrate.PushBack(normalize(hr->calc(thread->index(), Hashrate::LargeInterval)),  allocator);
 
         value.AddMember("hashrate", hashrate, allocator);
         list.PushBack(value, allocator);
