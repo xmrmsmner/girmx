@@ -4,9 +4,7 @@
  * Copyright 2014      Lucas Jones <https://github.com/lucasjones>
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
- * Copyright 2017-2019 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2018-2019 SChernykh   <https://github.com/SChernykh>
- * Copyright 2016-2019 XMRig       <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -30,10 +28,10 @@
 #include <stdint.h>
 
 
-#include "common/xmrig.h"
+#include "common/girmx.h"
 
 
-namespace xmrig {
+namespace girmx {
 
 
 class ICpuInfo
@@ -42,7 +40,6 @@ public:
     virtual ~ICpuInfo() {}
 
     virtual bool hasAES() const                                               = 0;
-    virtual bool hasAVX2() const                                              = 0;
     virtual bool isSupported() const                                          = 0;
     virtual bool isX64() const                                                = 0;
     virtual const char *brand() const                                         = 0;
@@ -53,11 +50,11 @@ public:
     virtual int32_t sockets() const                                           = 0;
     virtual int32_t threads() const                                           = 0;
     virtual size_t optimalThreadsCount(size_t memSize, int maxCpuUsage) const = 0;
-    virtual xmrig::Assembly assembly() const                                  = 0;
+    virtual girmx::Assembly assembly() const                                  = 0;
 };
 
 
-} /* namespace xmrig */
+} /* namespace girmx */
 
 
 #endif // XMRIG_CPUINFO_H

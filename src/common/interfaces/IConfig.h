@@ -4,9 +4,7 @@
  * Copyright 2014      Lucas Jones <https://github.com/lucasjones>
  * Copyright 2014-2016 Wolf9466    <https://github.com/OhGodAPet>
  * Copyright 2016      Jay D Dee   <jayddee246@gmail.com>
- * Copyright 2017-2018 XMR-Stak    <https://github.com/fireice-uk>, <https://github.com/psychocrypt>
- * Copyright 2018-2019 SChernykh   <https://github.com/SChernykh>
- * Copyright 2016-2019 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ * Copyright 2016-2018 XMRig       <support@girmx.com>
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -30,10 +28,7 @@
 #include "rapidjson/fwd.h"
 
 
-namespace xmrig {
-
-
-class String;
+namespace girmx {
 
 
 class IConfig
@@ -52,6 +47,7 @@ public:
         ColorKey          = 1002,
         ConfigKey         = 'c',
         DonateLevelKey    = 1003,
+        HelpKey           = 'h',
         KeepAliveKey      = 'k',
         LogFileKey        = 'l',
         PasswordKey       = 'p',
@@ -65,17 +61,18 @@ public:
         UserpassKey       = 'O',
         VariantKey        = 1010,
         VerboseKey        = 1100,
+        VersionKey        = 'V',
         WatchKey          = 1105,
         TlsKey            = 1013,
         FingerprintKey    = 1014,
         AutoSaveKey       = 1016,
 
-        // xmrig common
+        // girmx common
         CPUPriorityKey    = 1021,
         NicehashKey       = 1006,
         PrintTimeKey      = 1007,
 
-        // xmrig cpu
+        // girmx cpu
         AVKey             = 'v',
         CPUAffinityKey    = 1020,
         DryRunKey         = 5000,
@@ -86,7 +83,7 @@ public:
         HardwareAESKey    = 1011,
         AssemblyKey       = 1015,
 
-        // xmrig amd
+        // girmx amd
         OclPlatformKey    = 1400,
         OclAffinityKey    = 1401,
         OclDevicesKey     = 1402,
@@ -99,7 +96,7 @@ public:
         OclUnrollKey      = 1409,
         OclCompModeKey    = 1410,
 
-        // xmrig-proxy
+        // girmx-proxy
         AccessLogFileKey   = 'A',
         BindKey            = 'b',
         CoinKey            = 1104,
@@ -118,7 +115,7 @@ public:
         TlsCipherSuitesKey = 1113,
         TlsProtocolsKey    = 1114,
 
-        // xmrig nvidia
+        // girmx nvidia
         CudaMaxThreadsKey = 1200,
         CudaBFactorKey    = 1201,
         CudaBSleepKey     = 1202,
@@ -128,7 +125,7 @@ public:
         CudaMaxUsageKey   = 1206,
     };
 
-    virtual ~IConfig() = default;
+    virtual ~IConfig() {}
 
     virtual bool finalize()                                = 0;
     virtual bool isWatch() const                           = 0;
@@ -137,14 +134,14 @@ public:
     virtual bool parseUint64(int key, uint64_t arg)        = 0;
     virtual bool save()                                    = 0;
     virtual const Algorithm &algorithm() const             = 0;
-    virtual const String &fileName() const                 = 0;
+    virtual const char *fileName() const                   = 0;
     virtual void getJSON(rapidjson::Document &doc) const   = 0;
     virtual void parseJSON(const rapidjson::Document &doc) = 0;
     virtual void setFileName(const char *fileName)         = 0;
 };
 
 
-} /* namespace xmrig */
+} /* namespace girmx */
 
 
 #endif // XMRIG_ICONFIG_H

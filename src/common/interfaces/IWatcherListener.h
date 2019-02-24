@@ -21,26 +21,26 @@
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef XMRIG_ICONTROLLERLISTENER_H
-#define XMRIG_ICONTROLLERLISTENER_H
+#ifndef __IWATCHERLISTENER_H__
+#define __IWATCHERLISTENER_H__
 
 
 namespace girmx {
 
 
-class Config;
+class IConfig;
 
 
-class IControllerListener
+class IWatcherListener
 {
 public:
-    virtual ~IControllerListener() {}
+    virtual ~IWatcherListener() {}
 
-    virtual void onConfigChanged(Config *config, Config *previousConfig) = 0;
+    virtual void onNewConfig(IConfig *config) = 0;
 };
 
 
 } /* namespace girmx */
 
 
-#endif // XMRIG_ICONTROLLERLISTENER_H
+#endif // __IWATCHERLISTENER_H__
